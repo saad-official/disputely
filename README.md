@@ -25,3 +25,21 @@ pnpm dev
 ## Docs
 
 - [Spec](docs/spec.md)
+
+## Live demo
+
+https://getdisputely.vercel.app · Stripe runs in test mode (card `4242 4242 4242 4242`).
+
+1. Sign up (no card). In **Settings**, paste a Stripe **restricted** test key (`rk_test_…`) with the permissions listed on the page. Secret keys are refused; the key is verified with one read call and stored encrypted (AES-256-GCM, per-organisation key derived from `APP_ENCRYPTION_KEY`).
+2. On the dashboard, click **Create demo disputes**: three test payments for the fictional store "Larkspur Goods" are made with Stripe's dispute-triggering test payment methods, synced back as real test-mode disputes, and seeded with policies, shipments and message logs.
+3. Open a dispute: deadline countdown, the reason-code playbook, completeness with a *how to fix* list, every evidence field with its source, and the narrative with verified facts highlighted and removed claims struck through.
+4. Download the PDF packet, upload supporting files (sent to Stripe as `dispute_evidence`), and **Submit** through the Disputes API; demo disputes can simulate a win or a loss with Stripe's `winning_evidence` / `losing_evidence` triggers.
+5. Analytics: win rate by reason code, median completeness of submitted packets, recovered amounts by currency. Reminders at 7, 3 and 1 day go to the Outbox.
+
+Verified on 4 Oct 2026: sign-up, key validation (secret keys refused), production cron, webhook and health routes. The Stripe-connected flow (demo disputes, submission) is covered by service tests with a stubbed Stripe client and still needs one live run with a restricted test key.
+
+## Known gaps
+
+- Merchant dispute webhooks arrive on the platform endpoint; disputes nobody has synced yet are ignored until the next sync. Per-org endpoints or Stripe Connect are the later fix.
+- Demo product descriptions pick up every library item in the same product line, because demo charges carry no Checkout line items.
+- No hand-editing of the narrative yet: regenerate it or add field overrides.
