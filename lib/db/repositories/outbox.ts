@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, type SQL } from "drizzle-orm";
 import { getDb } from "../client";
 import { outbox } from "../schema";
 import type { OutboxAttachment, OutboxMessage } from "../types";
@@ -56,4 +56,32 @@ export async function listForOrg(
     .where(and(...where))
     .orderBy(desc(outbox.createdAt), desc(outbox.id))
     .limit(clampLimit(options.limit));
+}
+
+/** Cron only (not org-scoped): failed messages to retry, oldest first. */
+export async function listFailed(limit = 20): Promise<OutboxMessage[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(outbox)
+    .where(eq(outbox.status, "failed"))
+    .orderBy(asc(outbox.createdAt), asc(outbox.id))
+    .limit(clampLimit(limit, 20, 100));
+}
+
+export type DeliveryUpdate = {
+  status: OutboxMessage["status"];
+  provider?: OutboxMessage["provider"];
+  providerMessageId?: string | null;
+  deliveredTo?: string | null;
+};
+
+/** Records the result of a (re)send. */
+export async function updateDelivery(messageId: string, update: DeliveryUpdate): Promise<void> {
+  const values: Partial<typeof outbox.$inferInsert> = { status: update.status };
+  if (update.provider !== undefined) values.provider = update.provider;
+  if (update.providerMessageId !== undefined) values.providerMessageId = update.providerMessageId;
+  if (update.deliveredTo !== undefined) values.deliveredTo = update.deliveredTo;
+  const db = await getDb();
+  await db.update(outbox).set(values).where(eq(outbox.id, messageId));
 }

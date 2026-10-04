@@ -103,3 +103,28 @@ export async function listByKind(orgId: string, kind: LibraryKind): Promise<Libr
     .where(and(eq(libraryItems.orgId, orgId), eq(libraryItems.kind, kind)))
     .orderBy(desc(libraryItems.updatedAt), asc(libraryItems.id));
 }
+
+/** Deletes items that match these (kind, title, text) triples exactly, e.g. the demo library. Returns how many. */
+export async function removeMatching(
+  orgId: string,
+  items: readonly { kind: LibraryKind; title: string; text: string }[],
+): Promise<number> {
+  if (items.length === 0) return 0;
+  const db = await getDb();
+  let removed = 0;
+  for (const item of items) {
+    const rows = await db
+      .delete(libraryItems)
+      .where(
+        and(
+          eq(libraryItems.orgId, orgId),
+          eq(libraryItems.kind, item.kind),
+          eq(libraryItems.title, item.title.trim()),
+          eq(libraryItems.text, item.text.trim()),
+        ),
+      )
+      .returning({ id: libraryItems.id });
+    removed += rows.length;
+  }
+  return removed;
+}

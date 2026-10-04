@@ -1,9 +1,9 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { getDb } from "../client";
 import { CHANNELS, MESSAGE_DIRECTIONS, messageLogs } from "../schema";
 import type { Channel, MessageDirection, MessageLog } from "../types";
-import { assertDisputeInOrg, isUuid, normalizeEmail } from "./shared";
+import { assertDisputeInOrg, clampLimit, isUuid, normalizeEmail } from "./shared";
 
 export type MessageLogInput = {
   customerEmail: string;
@@ -114,4 +114,27 @@ export async function remove(orgId: string, messageLogId: string): Promise<boole
     .where(and(eq(messageLogs.id, messageLogId), eq(messageLogs.orgId, orgId)))
     .returning({ id: messageLogs.id });
   return rows.length > 0;
+}
+
+/** The organization's most recent messages, newest first (the Records tab). */
+export async function listRecent(orgId: string, limit = 100): Promise<MessageLog[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(messageLogs)
+    .where(eq(messageLogs.orgId, orgId))
+    .orderBy(desc(messageLogs.occurredAt), desc(messageLogs.id))
+    .limit(clampLimit(limit, 100, 500));
+}
+
+/** Deletes every message with these customers (demo cleanup). Returns how many. */
+export async function removeForCustomers(orgId: string, emails: readonly string[]): Promise<number> {
+  const normalized = [...new Set(emails.map(normalizeEmail).filter(Boolean))];
+  if (normalized.length === 0) return 0;
+  const db = await getDb();
+  const rows = await db
+    .delete(messageLogs)
+    .where(and(eq(messageLogs.orgId, orgId), inArray(messageLogs.customerEmail, normalized)))
+    .returning({ id: messageLogs.id });
+  return rows.length;
 }

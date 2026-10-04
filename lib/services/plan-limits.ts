@@ -7,10 +7,20 @@ import type { Organization, Plan } from "@/lib/db/types";
  * reason-code playbook. Pro: unlimited disputes, policy library, product-line
  * templates, one-click submit, analytics, deadline reminders.
  *
- * Minimal module created with the data layer so app/api/_lib compiles; the
- * services layer owns and extends it.
+ * How the services apply them:
+ * - Disputes a month: a Free org can build packets for the first 3 non-demo
+ *   disputes Stripe opened in each UTC calendar month (by `opened_at`, ties by
+ *   id). Later ones stay visible and synced, but packet work is refused with
+ *   an upgrade link. Demo disputes never count.
+ * - One-click submit (the Stripe Disputes API): Pro. Free submits manually in
+ *   the Stripe Dashboard using the packet PDF, except demo disputes (Stripe
+ *   test mode), which Free may submit so the demo runs end to end.
+ * - Library: saving or editing policy library items is Pro; Free can read and
+ *   delete what is there (the demo seeds it). Product-line templates are Pro.
+ * - Reminders and the analytics page are Pro.
  */
 export const FREE_DISPUTES_PER_MONTH = 3;
+export const PRO_PRICE_USD = 29;
 
 /** Largest upload accepted (Stripe's per-file evidence limit). */
 export const MAX_UPLOAD_BYTES = MAX_ATTACHMENT_BYTES;
@@ -90,4 +100,24 @@ export function assertDisputeAllowance(org: Pick<Organization, "plan">, usedThis
     `Free covers ${limit} disputes a month and this month's are used. Upgrade to Pro for unlimited disputes.`,
     { limit, used: usedThisMonth },
   );
+}
+
+/** Throws PlanLimitError unless the org may submit through the Stripe API (Pro, or a demo dispute). */
+export function assertCanSubmitViaApi(org: Pick<Organization, "plan">, dispute: { demo: boolean }): void {
+  if (limitsFor(org.plan).oneClickSubmit || dispute.demo) return;
+  throw new PlanLimitError(
+    "one_click_submit",
+    "Free covers the packet and its PDF; submitting through Stripe from here is a Pro feature. Download the PDF and submit it in your Stripe Dashboard, or upgrade to Pro for one-click submit.",
+  );
+}
+
+/** Throws PlanLimitError unless the org may save policy library items. */
+export function assertLibraryWrite(org: Pick<Organization, "plan">, options: { productLine?: string | null } = {}): void {
+  const limits = limitsFor(org.plan);
+  if (!limits.library) {
+    throw new PlanLimitError("library", "Saving policies to the library is a Pro feature. Upgrade to reuse them in every packet.");
+  }
+  if (options.productLine?.trim() && !limits.productLineTemplates) {
+    throw new PlanLimitError("product_line_templates", "Templates per product line are a Pro feature.");
+  }
 }

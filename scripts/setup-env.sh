@@ -65,11 +65,11 @@ set_env STRIPE_WEBHOOK_SECRET "$WHSEC" --sensitive
 
 echo "Writing .env.local..."
 cat > .env.local <<EOF
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3500
 NEXT_PUBLIC_APP_NAME=Disputely
 DATABASE_URL=$DB_URL
 BETTER_AUTH_SECRET=$AUTH_SECRET
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3500
 GROQ_API_KEY=$GROQ
 GOOGLE_GENERATIVE_AI_API_KEY=$GEMINI
 AI_PRIMARY_MODEL=openai/gpt-oss-20b

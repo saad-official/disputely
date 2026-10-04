@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, getTableColumns, ne, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, ne, sql } from "drizzle-orm";
 import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import { getDb } from "../client";
 import { disputes, packets } from "../schema";
@@ -178,4 +178,32 @@ export async function getPdf(orgId: string, packetId: string): Promise<Buffer | 
     .where(and(eq(packets.id, packetId), eq(packets.orgId, orgId)))
     .limit(1);
   return row?.pdf ?? null;
+}
+
+export type PacketSummary = {
+  id: string;
+  disputeId: string;
+  status: PacketStatus;
+  completeness: number;
+  missing: string[];
+  hasNarrative: boolean;
+};
+
+/** Lightweight packet facts for lists (no fields, narrative text or PDF), keyed by dispute id. */
+export async function listSummaries(orgId: string, disputeIds: readonly string[]): Promise<Map<string, PacketSummary>> {
+  const ids = disputeIds.filter(isUuid);
+  if (ids.length === 0) return new Map();
+  const db = await getDb();
+  const rows = await db
+    .select({
+      id: packets.id,
+      disputeId: packets.disputeId,
+      status: packets.status,
+      completeness: packets.completeness,
+      missing: packets.missing,
+      hasNarrative: sql<boolean>`(length(${packets.narrative}) > 0)`,
+    })
+    .from(packets)
+    .where(and(eq(packets.orgId, orgId), inArray(packets.disputeId, ids)));
+  return new Map(rows.map((r) => [r.disputeId, r]));
 }

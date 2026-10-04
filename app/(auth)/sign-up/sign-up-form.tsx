@@ -70,7 +70,7 @@ export function SignUpForm({ next }: { next: string }) {
       <FormError message={errors.form} />
       <Field
         id="businessName"
-        label="Shop or business name"
+        label="Company name"
         autoComplete="organization"
         required
         maxLength={120}

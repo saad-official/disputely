@@ -186,13 +186,13 @@ describe("organizations", () => {
     try {
       const org = await insertOrg(handle);
       await expect(organizationsRepo.setStripeKey(org.id, "rk_test_plaintext", "x")).rejects.toThrow(/not encrypted/);
-      const ciphertext = encryptSecret(org.id, "rk_test_51Habcdefghijklmnop1234");
+      const ciphertext = encryptSecret(org.id, "rk_test_FixtureKey0003");
       const connected = await organizationsRepo.setStripeKey(org.id, ciphertext, "Larkspur Goods (rk_test_…1234)");
       expect(connected?.stripeRestrictedKeyCiphertext).toBe(ciphertext);
       expect(connected?.stripeAccountLabel).toBe("Larkspur Goods (rk_test_…1234)");
       expect(connected?.stripeKeyConnectedAt).toBeInstanceOf(Date);
       const reread = await organizationsRepo.getById(org.id);
-      expect(decryptSecret(org.id, reread!.stripeRestrictedKeyCiphertext!)).toBe("rk_test_51Habcdefghijklmnop1234");
+      expect(decryptSecret(org.id, reread!.stripeRestrictedKeyCiphertext!)).toBe("rk_test_FixtureKey0003");
 
       const cleared = await organizationsRepo.clearStripeKey(org.id);
       expect(cleared).toMatchObject({ stripeRestrictedKeyCiphertext: null, stripeAccountLabel: null, stripeKeyConnectedAt: null });

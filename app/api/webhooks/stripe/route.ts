@@ -2,12 +2,15 @@ import type Stripe from "stripe";
 import { optionalEnv } from "@/lib/env";
 import { syncSubscriptionToOrg } from "@/lib/stripe/billing";
 import { stripe } from "@/lib/stripe/client";
+import { handleDisputeEvent, isDisputeEventType } from "@/lib/services/webhooks";
 
 /**
- * Stripe webhook (spec 3.5). Endpoint: /api/webhooks/stripe.
+ * Stripe webhook (spec 3.2, 3.5). Endpoint: /api/webhooks/stripe.
  * Needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Subscribe to:
  * checkout.session.completed, customer.subscription.created,
- * customer.subscription.updated, customer.subscription.deleted.
+ * customer.subscription.updated, customer.subscription.deleted (platform
+ * billing) and charge.dispute.created|updated|closed (disputes on the same
+ * sandbox account; routed by dispute id, see lib/services/webhooks.ts).
  *
  * Idempotent: every event re-reads the subscription from Stripe and
  * overwrites the org's plan with its current state, so retries, duplicates and
@@ -28,6 +31,10 @@ async function currentSubscription(ref: string | Stripe.Subscription): Promise<S
 }
 
 async function handleEvent(event: Stripe.Event): Promise<string> {
+  if (isDisputeEventType(event.type)) {
+    const dispute = event.data.object as Stripe.Dispute;
+    return handleDisputeEvent(event.type, { id: dispute.id });
+  }
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;

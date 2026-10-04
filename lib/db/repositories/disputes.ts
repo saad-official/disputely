@@ -253,3 +253,116 @@ export async function orgIdsWithDisputesDueWithin(days: number, now: Date = new 
     );
   return rows.map((r) => r.orgId);
 }
+
+/**
+ * Webhook only (not org-scoped): every organization that has synced this
+ * Stripe dispute. Merchants connect their own keys, so the platform webhook
+ * carries no org id; the dispute id is the only link.
+ */
+export async function findOrgIdsByStripeDisputeId(stripeDisputeId: string): Promise<string[]> {
+  const id = stripeDisputeId.trim();
+  if (!id) return [];
+  const db = await getDb();
+  const rows = await db
+    .select({ orgId: disputes.orgId })
+    .from(disputes)
+    .where(eq(disputes.stripeDisputeId, id));
+  return [...new Set(rows.map((r) => r.orgId))];
+}
+
+/** The org's disputes on one charge (normally one), newest first. */
+export async function findByCharge(orgId: string, chargeId: string): Promise<Dispute[]> {
+  const charge = chargeId.trim();
+  if (!charge) return [];
+  const db = await getDb();
+  return db
+    .select()
+    .from(disputes)
+    .where(and(eq(disputes.orgId, orgId), eq(disputes.chargeId, charge)))
+    .orderBy(desc(disputes.openedAt), desc(disputes.id));
+}
+
+/** Tags a dispute with a product line (Pro templates); null clears it. */
+export async function setProductLine(orgId: string, disputeId: string, productLine: string | null): Promise<Dispute | null> {
+  if (!isUuid(disputeId)) return null;
+  const db = await getDb();
+  const [row] = await db
+    .update(disputes)
+    .set({ productLine: productLine?.trim().slice(0, 120) || null })
+    .where(and(eq(disputes.id, disputeId), eq(disputes.orgId, orgId)))
+    .returning();
+  return row ?? null;
+}
+
+/** `charge->>'demo' = 'true'`: rows created by Disputely's demo. */
+const isDemoRow = sql`coalesce((${disputes.charge} ->> 'demo')::boolean, false)`;
+
+/**
+ * Where a dispute falls in the Free allowance: how many of the org's
+ * non-demo disputes Stripe opened earlier in the same UTC calendar month
+ * (ties broken by id). The Free plan covers ranks 0, 1 and 2.
+ */
+export async function allowanceRank(orgId: string, dispute: Pick<Dispute, "id" | "openedAt">): Promise<number> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: count() })
+    .from(disputes)
+    .where(
+      and(
+        eq(disputes.orgId, orgId),
+        sql`not ${isDemoRow}`,
+        gte(disputes.openedAt, monthStartUtc(dispute.openedAt)),
+        lt(disputes.openedAt, nextMonthStartUtc(dispute.openedAt)),
+        sql`(${disputes.openedAt}, ${disputes.id}) < (${dispute.openedAt.toISOString()}::timestamptz, ${dispute.id}::uuid)`,
+      ),
+    );
+  return Number(row?.n ?? 0);
+}
+
+/** Non-demo disputes Stripe opened this UTC month (Billing's usage meter). */
+export async function countBillableThisMonth(orgId: string, now: Date = new Date()): Promise<number> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: count() })
+    .from(disputes)
+    .where(
+      and(
+        eq(disputes.orgId, orgId),
+        sql`not ${isDemoRow}`,
+        gte(disputes.openedAt, monthStartUtc(now)),
+        lt(disputes.openedAt, nextMonthStartUtc(now)),
+      ),
+    );
+  return Number(row?.n ?? 0);
+}
+
+/** The org's demo disputes, oldest first. */
+export async function listDemo(orgId: string): Promise<Dispute[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(disputes)
+    .where(and(eq(disputes.orgId, orgId), isDemoRow))
+    .orderBy(asc(disputes.openedAt), asc(disputes.id));
+}
+
+/** Deletes the org's demo disputes (packets, attachments and reminders cascade). Returns how many. */
+export async function deleteDemo(orgId: string): Promise<number> {
+  const db = await getDb();
+  const rows = await db
+    .delete(disputes)
+    .where(and(eq(disputes.orgId, orgId), isDemoRow))
+    .returning({ id: disputes.id });
+  return rows.length;
+}
+
+/** Final disputes, most recently closed first (the outcomes table). */
+export async function listClosed(orgId: string, limit = 50): Promise<Dispute[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(disputes)
+    .where(and(eq(disputes.orgId, orgId), inArray(disputes.status, [...CLOSED_DISPUTE_STATUSES])))
+    .orderBy(sql`${disputes.closedAt} desc nulls last`, desc(disputes.openedAt), desc(disputes.id))
+    .limit(clampLimit(limit, 50, 200));
+}

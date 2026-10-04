@@ -61,7 +61,7 @@ export function NavLinks({ openDisputeCount }: { openDisputeCount: number }) {
             <span className="truncate">{label}</span>
             {showCount ? (
               <span
-                className="tabular ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-oxide px-1.5 font-mono text-xs font-semibold text-oxide-foreground"
+                className="tabular ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-oxide-ink px-1.5 font-mono text-xs font-semibold text-oxide-foreground"
                 aria-label={`${openDisputeCount} ${openDisputeCount === 1 ? "dispute needs" : "disputes need"} a response`}
               >
                 {openDisputeCount > 99 ? "99+" : openDisputeCount}

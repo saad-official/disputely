@@ -234,6 +234,14 @@ export type DisputeCharge = {
   lineItems?: { description: string; quantity?: number | null; amountCents?: number | null }[];
   /** Amount refunded so far, minor units. */
   amountRefundedCents?: number | null;
+  /** The merchant's order reference (charge/PaymentIntent metadata `order_ref` or `order_id`). */
+  orderRef?: string | null;
+  /**
+   * Created by Disputely's demo (metadata `disputely_demo: "1"` on a test-mode
+   * PaymentIntent). Demo disputes are exempt from the Free allowance and are
+   * removed by "Clear demo data".
+   */
+  demo?: boolean;
 };
 
 /** disputes.shipping: the charge's or Checkout session's shipping details. */
@@ -264,6 +272,10 @@ export type PacketField = {
   sourceLabel?: string | null;
   /** Id of the library item, message log, shipment or attachment the value came from. */
   sourceId?: string | null;
+  /** The assembler's finer source (lib/domain/types FIELD_SOURCES, e.g. "stripe_customer"). */
+  origin?: string | null;
+  /** Entered by the merchant on the packet page; kept across rebuilds until cleared. */
+  override?: boolean;
 };
 
 export type PacketFields = Record<string, PacketField>;
@@ -281,6 +293,14 @@ export type NarrativeMeta = {
   latencyMs?: number | null;
   /** ISO datetime. */
   generatedAt?: string;
+  /** Every verified claim with its kind (date, amount, tracking, email, name, ip, id). */
+  verified?: { text: string; kind: string }[];
+  /** Every removed sentence with why it was removed and the token that caused it. */
+  removed?: { text: string; kind: string; claim?: string | null }[];
+  /** Guardrails passed (false when too much had to be removed). */
+  ok?: boolean;
+  /** Model confidence after the guardrail adjustment, 0..1. */
+  confidence?: number | null;
 };
 
 export type OutboxAttachment = {

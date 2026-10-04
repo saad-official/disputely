@@ -1,9 +1,9 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import { shipments } from "../schema";
 import type { Shipment } from "../types";
-import { normalizeHttpUrl } from "./shared";
+import { clampLimit, isUuid, normalizeHttpUrl } from "./shared";
 
 export type ShipmentInput = {
   carrier?: string | null;
@@ -54,4 +54,37 @@ export async function findByCharge(orgId: string, chargeId: string): Promise<Shi
     .where(and(eq(shipments.orgId, orgId), eq(shipments.chargeId, chargeId.trim())))
     .limit(1);
   return row ?? null;
+}
+
+/** Most recently updated first. */
+export async function listRecent(orgId: string, limit = 50): Promise<Shipment[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(shipments)
+    .where(eq(shipments.orgId, orgId))
+    .orderBy(desc(shipments.updatedAt), desc(shipments.id))
+    .limit(clampLimit(limit, 50, 200));
+}
+
+export async function remove(orgId: string, shipmentId: string): Promise<boolean> {
+  if (!isUuid(shipmentId)) return false;
+  const db = await getDb();
+  const rows = await db
+    .delete(shipments)
+    .where(and(eq(shipments.id, shipmentId), eq(shipments.orgId, orgId)))
+    .returning({ id: shipments.id });
+  return rows.length > 0;
+}
+
+/** Deletes the org's shipment records for these charges (demo cleanup). */
+export async function removeForCharges(orgId: string, chargeIds: readonly string[]): Promise<number> {
+  const ids = [...new Set(chargeIds.map((c) => c.trim()).filter(Boolean))];
+  if (ids.length === 0) return 0;
+  const db = await getDb();
+  const rows = await db
+    .delete(shipments)
+    .where(and(eq(shipments.orgId, orgId), inArray(shipments.chargeId, ids)))
+    .returning({ id: shipments.id });
+  return rows.length;
 }

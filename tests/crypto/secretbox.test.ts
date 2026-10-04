@@ -4,7 +4,7 @@ import { decryptSecret, encryptSecret, maskKey, SecretboxError } from "@/lib/cry
 const ORG_A = "6f1c2a52-6c43-4a7e-9a8f-1f6d2b3c4d5e";
 const ORG_B = "0b9e8d7c-6b5a-4f3e-8d2c-1b0a9f8e7d6c";
 const KEY = Buffer.alloc(32, 0x2a).toString("base64");
-const STRIPE_KEY = "rk_test_51HxYzAbCdEfGhIjKlMnOpQrStUvWxYz0123456789a1B2";
+const STRIPE_KEY = "rk_test_FixtureKey0002";
 
 let previous: string | undefined;
 
@@ -77,7 +77,7 @@ describe("encryptSecret / decryptSecret", () => {
 
 describe("maskKey", () => {
   it("shows the Stripe prefix and the last 4 characters", () => {
-    expect(maskKey(STRIPE_KEY)).toBe("rk_test_…a1B2");
+    expect(maskKey(STRIPE_KEY)).toBe("rk_test_…0002");
     expect(maskKey("  sk_live_abcdefghijklmnopWXYZ ")).toBe("sk_live_…WXYZ");
     expect(maskKey("whsec_abcdefghij9876")).toBe("…9876");
   });

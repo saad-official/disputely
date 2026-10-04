@@ -1,7 +1,7 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull, max, sql } from "drizzle-orm";
 import { getDb } from "../client";
-import { organizations } from "../schema";
+import { disputes, memberships, organizations, user } from "../schema";
 import type { Organization, Plan } from "../types";
 import { isUuid, isValidTimeZone, normalizeEmail } from "./shared";
 
@@ -96,4 +96,36 @@ export async function setPlan(orgId: string, change: PlanChange): Promise<Organi
   const db = await getDb();
   const [row] = await db.update(organizations).set(values).where(eq(organizations.id, orgId)).returning();
   return row ?? null;
+}
+
+/** Sign-in email of the organization's first owner; reminders go here unless `reminder_email` is set. */
+export async function getOwnerEmail(orgId: string): Promise<string | null> {
+  if (!isUuid(orgId)) return null;
+  const db = await getDb();
+  const [row] = await db
+    .select({ email: user.email })
+    .from(memberships)
+    .innerJoin(user, eq(user.id, memberships.userId))
+    .where(and(eq(memberships.orgId, orgId), eq(memberships.role, "owner")))
+    .orderBy(asc(memberships.createdAt))
+    .limit(1);
+  return row?.email ?? null;
+}
+
+/**
+ * Cron only (not org-scoped): organizations with a connected Stripe key,
+ * least recently synced first (never synced first), capped per run.
+ */
+export async function listConnectedForSync(limit = 20): Promise<string[]> {
+  const db = await getDb();
+  const lastSynced = max(disputes.syncedAt);
+  const rows = await db
+    .select({ id: organizations.id, lastSynced })
+    .from(organizations)
+    .leftJoin(disputes, eq(disputes.orgId, organizations.id))
+    .where(isNotNull(organizations.stripeRestrictedKeyCiphertext))
+    .groupBy(organizations.id)
+    .orderBy(sql`${lastSynced} asc nulls first`, asc(organizations.id))
+    .limit(Math.max(1, Math.min(100, Math.floor(limit))));
+  return rows.map((r) => r.id);
 }

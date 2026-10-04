@@ -1,19 +1,32 @@
 import { NotFoundError } from "@/lib/db/repositories/shared";
 
 /**
- * Service-layer error vocabulary shared by API routes (app/api/_lib/respond.ts).
- * Minimal module created with the data layer; the services layer owns it.
+ * Service-layer error vocabulary shared by API routes (app/api/_lib/respond.ts)
+ * and Server Actions (app/(app)/_lib/action-errors.ts).
  */
 export { NotFoundError };
 export { PlanLimitError, isPlanLimitError } from "./plan-limits";
 
-export type ServiceErrorCode = "invalid_input" | "conflict" | "unsupported_file" | "too_large";
+export type ServiceErrorCode =
+  | "invalid_input"
+  | "conflict"
+  | "unsupported_file"
+  | "too_large"
+  /** No Stripe key connected (or it can no longer be decrypted). */
+  | "stripe_not_connected"
+  /** Stripe refused or failed the call; `message` says what to do. */
+  | "stripe_error"
+  /** A dependency (the model) failed; retry later. */
+  | "unavailable";
 
 const STATUS: Record<ServiceErrorCode, number> = {
   invalid_input: 400,
   conflict: 409,
   unsupported_file: 415,
   too_large: 413,
+  stripe_not_connected: 409,
+  stripe_error: 502,
+  unavailable: 503,
 };
 
 /**
@@ -41,4 +54,20 @@ export function isNotFoundError(error: unknown): error is NotFoundError {
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Runs a repository call whose validation throws plain `Error`s with
+ * user-facing messages, and turns those into ServiceError("invalid_input").
+ * Driver and Drizzle errors (other names) pass through untouched.
+ */
+export async function asInvalidInput<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof Error && error.name === "Error" && !isServiceError(error)) {
+      throw new ServiceError("invalid_input", error.message, { cause: error });
+    }
+    throw error;
+  }
 }

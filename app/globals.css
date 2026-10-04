@@ -21,6 +21,7 @@
   --color-linen: var(--linen);
   --color-oxide: var(--oxide);
   --color-oxide-foreground: var(--oxide-foreground);
+  --color-oxide-ink: var(--oxide-ink);
   --color-steel: var(--steel);
   --color-steel-foreground: var(--steel-foreground);
   --color-olive: var(--olive);
@@ -72,6 +73,12 @@
   --slate: oklch(0.25 0.025 250);
   --linen: oklch(0.975 0.006 80);
   --oxide: oklch(0.52 0.16 30);
+  /*
+    Oxide at a lower lightness, same hue (see components/marketing/site.ts):
+    about 6.5:1 on linen and under white text. Buttons, chips and small text
+    use it; large countdown numerals use --oxide itself.
+  */
+  --oxide-ink: oklch(0.46 0.15 30);
   --oxide-foreground: oklch(0.98 0.005 30);
   --steel: oklch(0.5 0.09 255);
   --steel-foreground: oklch(0.98 0.005 255);
@@ -85,7 +92,7 @@
   --card-foreground: var(--slate);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--slate);
-  --primary: var(--oxide);
+  --primary: var(--oxide-ink);
   --primary-foreground: var(--oxide-foreground);
   --secondary: oklch(0.945 0.008 80);
   --secondary-foreground: var(--slate);
@@ -118,6 +125,7 @@
   --slate: oklch(0.94 0.006 80);
   --linen: oklch(0.2 0.02 250);
   --oxide: oklch(0.7 0.15 30);
+  --oxide-ink: oklch(0.72 0.14 30);
   --oxide-foreground: oklch(0.18 0.05 30);
   --steel: oklch(0.72 0.09 255);
   --steel-foreground: oklch(0.18 0.03 255);
