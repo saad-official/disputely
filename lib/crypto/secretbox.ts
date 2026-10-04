@@ -38,9 +38,10 @@ function masterKey(): Buffer {
   }
   const trimmed = raw.trim();
   const key = /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed) ? Buffer.from(trimmed, "base64") : Buffer.alloc(0);
-  if (key.length !== KEY_BYTES) {
+  // HKDF accepts any input keying material of at least KEY_BYTES; longer keys are fine.
+  if (key.length < KEY_BYTES) {
     throw new SecretboxError(
-      `${APP_ENCRYPTION_KEY} must be ${KEY_BYTES} bytes encoded as base64 (got ${key.length} bytes). Generate one with \`openssl rand -base64 32\`.`,
+      `${APP_ENCRYPTION_KEY} must be at least ${KEY_BYTES} bytes encoded as base64 (got ${key.length} bytes). Generate one with \`openssl rand -base64 32\`.`,
     );
   }
   return key;

@@ -65,10 +65,14 @@ describe("encryptSecret / decryptSecret", () => {
     expect(() => encryptSecret(ORG_A, STRIPE_KEY)).toThrow(/APP_ENCRYPTION_KEY is not set.*openssl rand -base64 32/);
 
     process.env.APP_ENCRYPTION_KEY = Buffer.alloc(16, 1).toString("base64");
-    expect(() => encryptSecret(ORG_A, STRIPE_KEY)).toThrow(/must be 32 bytes.*got 16 bytes/);
+    expect(() => encryptSecret(ORG_A, STRIPE_KEY)).toThrow(/must be at least 32 bytes.*got 16 bytes/);
 
     process.env.APP_ENCRYPTION_KEY = "not base64 at all!";
-    expect(() => encryptSecret(ORG_A, STRIPE_KEY)).toThrow(/must be 32 bytes/);
+    expect(() => encryptSecret(ORG_A, STRIPE_KEY)).toThrow(/must be at least 32 bytes/);
+
+    // Longer keys (e.g. `openssl rand -base64 48`) are accepted: HKDF takes any length of input keying material.
+    process.env.APP_ENCRYPTION_KEY = Buffer.alloc(48, 7).toString("base64");
+    expect(decryptSecret(ORG_A, encryptSecret(ORG_A, STRIPE_KEY))).toBe(STRIPE_KEY);
 
     process.env.APP_ENCRYPTION_KEY = KEY;
     expect(() => encryptSecret("", STRIPE_KEY)).toThrow(/organization id/);
