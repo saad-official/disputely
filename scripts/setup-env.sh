@@ -37,6 +37,7 @@ GROQ=$(read_env "$JOURNEY_ENV" GROQ_API_KEY)
 CRON=$(read_secret "$SECRETS/disputely-cron-secret.txt")
 AUTH_SECRET=$(read_secret "$SECRETS/disputely-better-auth-secret.txt")
 PRICE=$(read_secret "$SECRETS/disputely-stripe-price.txt")
+ENC_KEY=$(read_secret "$SECRETS/disputely-app-encryption-key.txt")
 STRIPE_SECRET=$(read_secret "$SECRETS/stripe-secret.txt")
 case "$STRIPE_SECRET" in sk_test_*) ;; *) echo "stripe-secret.txt must hold a test-mode key"; exit 1;; esac
 DB_URL=$(read_secret "$SECRETS/disputely-database-url.txt")
@@ -50,6 +51,7 @@ set_env BETTER_AUTH_SECRET "$AUTH_SECRET" --sensitive
 set_env GOOGLE_GENERATIVE_AI_API_KEY "$GEMINI" --sensitive
 set_env GROQ_API_KEY "$GROQ" --sensitive
 set_env STRIPE_SECRET_KEY "$STRIPE_SECRET" --sensitive
+set_env APP_ENCRYPTION_KEY "$ENC_KEY" --sensitive
 
 echo "Recreating the Stripe webhook endpoint for $PROD_URL ..."
 for id in $("$STRIPE" webhook_endpoints list --limit 50 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);for(const w of (j.data||[])) if(w.url===process.argv[1]) console.log(w.id)})' "$PROD_URL/api/webhooks/stripe"); do
@@ -59,7 +61,7 @@ CREATED=$("$STRIPE" webhook_endpoints create --url "$PROD_URL/api/webhooks/strip
   --enabled-events checkout.session.completed \
   --enabled-events customer.subscription.created \
   --enabled-events customer.subscription.updated \
-  --enabled-events customer.subscription.deleted 2>/dev/null)
+  --enabled-events customer.subscription.deleted \n  --enabled-events charge.dispute.created \n  --enabled-events charge.dispute.updated \n  --enabled-events charge.dispute.closed \n  --enabled-events charge.dispute.funds_withdrawn \n  --enabled-events charge.dispute.funds_reinstated 2>/dev/null)
 WHSEC=$(printf '%s' "$CREATED" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.secret||"")})')
 [ -n "$WHSEC" ] || { echo "webhook creation failed"; exit 1; }
 echo "  created $(printf '%s' "$CREATED" | grep -oE '"id": "we_[A-Za-z0-9]+"' | head -1)"
@@ -80,6 +82,7 @@ STRIPE_SECRET_KEY=$STRIPE_SECRET
 STRIPE_PRICE_PRO_MONTHLY=$PRICE
 STRIPE_WEBHOOK_SECRET=
 CRON_SECRET=$CRON
+APP_ENCRYPTION_KEY=$ENC_KEY
 EMAIL_FROM=Disputely <onboarding@resend.dev>
 EOF
 
