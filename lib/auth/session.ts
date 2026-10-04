@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { getDb } from "@/lib/db/client";
-import { getOpenCount } from "@/lib/db/repositories/questions";
+import { countNeedsResponse } from "@/lib/db/repositories/disputes";
 import type { MembershipRole, Organization } from "@/lib/db/types";
 import { ensureOrganizationForUser } from "./organization";
 import { getAuth, type AuthSession } from "./server";
@@ -53,7 +53,7 @@ export async function requireOrgContext(): Promise<OrgContext> {
   return ctx;
 }
 
-/** Questions that need evidence across in-review questionnaires (the app-shell badge). */
-export const getOpenEvidenceCount = cache(async (orgId: string): Promise<number> => {
-  return getOpenCount(orgId);
+/** Disputes that still need a response (the Disputes badge in the app shell). Deduplicated per render. */
+export const getOpenDisputeCount = cache(async (orgId: string): Promise<number> => {
+  return countNeedsResponse(orgId);
 });

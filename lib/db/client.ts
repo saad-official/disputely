@@ -10,8 +10,8 @@ import * as schema from "./schema";
  * - `DATABASE_URL` set: postgres.js, pooled, `prepare: false` (works behind
  *   PgBouncer-style poolers such as Neon's pooled endpoint).
  * - `DATABASE_URL` unset and NODE_ENV !== "production": embedded PGlite
- *   persisted to `.pglite/` with the pgvector extension loaded, migrated on
- *   first use, so `pnpm dev` works with zero setup.
+ *   persisted to `.pglite/`, migrated on first use, so `pnpm dev` works
+ *   with zero setup.
  * - `DATABASE_URL` unset in production: throws on first use.
  */
 
@@ -50,23 +50,21 @@ export async function createPostgresDb(url: string): Promise<DbHandle> {
 }
 
 /**
- * PGlite in-process Postgres with pgvector (`@electric-sql/pglite-pgvector`;
- * PGlite 0.5 moved the extension out of the core package). `dataDir`
- * undefined means in-memory (tests). Applies pending migrations unless
- * `migrate: false`; the first migration runs `create extension vector`.
+ * PGlite in-process Postgres (no extensions needed). `dataDir` undefined
+ * means in-memory (tests). Applies pending migrations unless
+ * `migrate: false`.
  */
 export async function createPgliteDb(
   dataDir: string | undefined,
   options: { migrate?: boolean } = {},
 ): Promise<DbHandle> {
-  const [{ PGlite }, { vector }, { drizzle }, { migrate }] = await Promise.all([
+  const [{ PGlite }, { drizzle }, { migrate }] = await Promise.all([
     import("@electric-sql/pglite"),
-    import("@electric-sql/pglite-pgvector"),
     import("drizzle-orm/pglite"),
     import("drizzle-orm/pglite/migrator"),
   ]);
   // Options-object form: `new PGlite(undefined, opts)` silently ignores opts.
-  const client = new PGlite({ dataDir, extensions: { vector } });
+  const client = new PGlite({ dataDir });
   const db = drizzle({ client, schema });
   if (options.migrate !== false) {
     await migrate(db, { migrationsFolder: migrationsFolder(), ...MIGRATIONS_CONFIG });

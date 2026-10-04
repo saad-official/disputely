@@ -1,15 +1,15 @@
 import { MobileTopBar, Sidebar, type SidebarProps } from "@/components/app/sidebar";
-import { getOpenEvidenceCount, requireOrgContext } from "@/lib/auth/session";
+import { getOpenDisputeCount, requireOrgContext } from "@/lib/auth/session";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, org } = await requireOrgContext();
-  const openEvidenceCount = await getOpenEvidenceCount(org.id);
+  const openDisputeCount = await getOpenDisputeCount(org.id);
 
   const shell: SidebarProps = {
     orgName: org.name,
     plan: org.plan,
     email: user.email,
-    openEvidenceCount,
+    openDisputeCount,
   };
 
   return (

@@ -21,8 +21,8 @@ export function MetricTile({
       <p
         className={cn(
           "tabular mt-2 font-heading text-3xl leading-none",
-          tone === "positive" && "text-approved",
-          tone === "attention" && "text-amber",
+          tone === "positive" && "text-olive",
+          tone === "attention" && "text-oxide",
         )}
       >
         {value}

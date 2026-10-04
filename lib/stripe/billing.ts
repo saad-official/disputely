@@ -85,7 +85,9 @@ export type SyncResult =
  * Writes a subscription's state onto its organization: plan ('pro' for
  * active, trialing or past_due, otherwise 'free'), stripe_customer_id and
  * stripe_subscription_id. Idempotent: it overwrites with the subscription's
- * state, so duplicate or retried deliveries are harmless. Unknown orgs are
+ * state, so duplicate or retried deliveries are harmless. Also records the
+ * subscription status and current period end (Stripe API 2025+ keeps the
+ * period on the subscription items; the earliest item end is used). Unknown orgs are
  * ignored. A non-active update for an older subscription never downgrades an
  * org that has moved to a newer one.
  */
@@ -106,14 +108,23 @@ export async function syncSubscriptionToOrg(
     return { kind: "ignored", reason: `subscription ${subscription.id} is not the org's current one` };
   }
 
+  const periodEnds = subscription.items?.data.map((item) => item.current_period_end).filter(Number.isFinite) ?? [];
+  const currentPeriodEnd = periodEnds.length > 0 ? new Date(Math.min(...periodEnds) * 1000) : null;
   const changed =
     org.plan !== plan || org.stripeCustomerId !== customerId || org.stripeSubscriptionId !== subscription.id;
-  if (changed) {
+  const detailsChanged =
+    org.subscriptionStatus !== subscription.status ||
+    (org.currentPeriodEnd?.getTime() ?? null) !== (currentPeriodEnd?.getTime() ?? null);
+  if (changed || detailsChanged) {
     await organizationsRepo.setPlan(org.id, {
       plan,
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      currentPeriodEnd,
     });
+  }
+  if (changed) {
     await logAgentEvent(await getDb(), {
       orgId: org.id,
       actor: options.actor ?? "webhook",

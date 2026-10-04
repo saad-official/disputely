@@ -10,8 +10,8 @@ export type SidebarProps = {
   orgName: string;
   plan: Plan;
   email: string | null;
-  /** Questions needing evidence across in-review questionnaires. */
-  openEvidenceCount: number;
+  /** Disputes that still need a response (the Disputes badge). */
+  openDisputeCount: number;
 };
 
 function PlanBadge({ plan }: { plan: Plan }) {
@@ -41,7 +41,7 @@ function RailWordmark({ className }: { className?: string }) {
 }
 
 /** Rail contents, shared by the desktop rail and the mobile drawer. */
-function RailBody({ orgName, plan, email, openEvidenceCount }: SidebarProps) {
+function RailBody({ orgName, plan, email, openDisputeCount }: SidebarProps) {
   return (
     <>
       <div className="px-4 pt-5 pb-4">
@@ -54,7 +54,7 @@ function RailBody({ orgName, plan, email, openEvidenceCount }: SidebarProps) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2">
-        <NavLinks openEvidenceCount={openEvidenceCount} />
+        <NavLinks openDisputeCount={openDisputeCount} />
       </div>
       <div className="border-t border-sidebar-border p-2">
         <UserMenu email={email} />

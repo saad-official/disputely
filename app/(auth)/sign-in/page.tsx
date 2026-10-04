@@ -19,7 +19,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
       <CardHeader>
         <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">Sign in</p>
         <CardTitle className="font-heading text-2xl font-bold tracking-tight">Welcome back</CardTitle>
-        <CardDescription>Pick up where your last questionnaire left off.</CardDescription>
+        <CardDescription>Pick up where your last packet left off.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         {expired ? (

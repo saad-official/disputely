@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, isNull, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import type { Db } from "../client";
-import { EMBEDDING_DIMENSIONS, documents, questionnaires } from "../schema";
+import { disputes, packets } from "../schema";
 
 /** `org_id = $orgId`, or `org_id is null` for anonymous (org-less) rows. */
 export function orgMatch(column: PgColumn, orgId: string | null): SQL {
@@ -27,45 +27,38 @@ export class NotFoundError extends Error {
   }
 }
 
-/** Throws unless the questionnaire exists and belongs to the organization. */
-export async function assertQuestionnaireInOrg(db: Db, orgId: string, questionnaireId: string): Promise<void> {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Guards lookups so a malformed id is a miss, not a Postgres cast error. */
+export function isUuid(value: string | null | undefined): value is string {
+  return typeof value === "string" && UUID.test(value);
+}
+
+/** Throws NotFoundError unless the dispute exists and belongs to the organization. */
+export async function assertDisputeInOrg(db: Db, orgId: string, disputeId: string): Promise<void> {
+  if (!isUuid(disputeId)) throw new NotFoundError("Dispute");
   const [row] = await db
-    .select({ id: questionnaires.id })
-    .from(questionnaires)
-    .where(and(eq(questionnaires.id, questionnaireId), eq(questionnaires.orgId, orgId)))
+    .select({ id: disputes.id })
+    .from(disputes)
+    .where(and(eq(disputes.id, disputeId), eq(disputes.orgId, orgId)))
     .limit(1);
-  if (!row) throw new NotFoundError("Questionnaire");
+  if (!row) throw new NotFoundError("Dispute");
 }
 
-/** Throws unless the document exists and belongs to the organization. */
-export async function assertDocumentInOrg(db: Db, orgId: string, documentId: string): Promise<void> {
+/** Throws NotFoundError unless the packet exists and belongs to the organization; returns its status. */
+export async function assertPacketInOrg(
+  db: Db,
+  orgId: string,
+  packetId: string,
+): Promise<{ status: (typeof packets.$inferSelect)["status"] }> {
+  if (!isUuid(packetId)) throw new NotFoundError("Packet");
   const [row] = await db
-    .select({ id: documents.id })
-    .from(documents)
-    .where(and(eq(documents.id, documentId), eq(documents.orgId, orgId)))
+    .select({ status: packets.status })
+    .from(packets)
+    .where(and(eq(packets.id, packetId), eq(packets.orgId, orgId)))
     .limit(1);
-  if (!row) throw new NotFoundError("Document");
-}
-
-/**
- * Validates an embedding (768 finite numbers) and returns its pgvector text
- * literal, e.g. "[0.1,0.2,...]". Throws on a wrong dimension so a model
- * misconfiguration fails loudly instead of corrupting the index.
- */
-export function toVectorLiteral(embedding: readonly number[]): string {
-  if (embedding.length !== EMBEDDING_DIMENSIONS) {
-    throw new Error(`Embedding has ${embedding.length} dimensions; expected ${EMBEDDING_DIMENSIONS}.`);
-  }
-  for (const value of embedding) {
-    if (!Number.isFinite(value)) throw new Error("Embedding contains a non-finite value.");
-  }
-  return `[${embedding.join(",")}]`;
-}
-
-/** Validates an embedding (see toVectorLiteral) and returns it unchanged, for Drizzle `vector` columns. */
-export function checkedEmbedding(embedding: number[]): number[] {
-  toVectorLiteral(embedding);
-  return embedding;
+  if (!row) throw new NotFoundError("Packet");
+  return row;
 }
 
 /** Postgres unique violation (23505), optionally on one constraint; follows `cause` chains (Drizzle wraps driver errors). */
@@ -84,7 +77,56 @@ export function isUniqueViolation(error: unknown, constraint?: string): boolean 
   return false;
 }
 
+/** A table's columns minus one (e.g. a bytea blob list queries must not load). */
+export function columnsWithout<T extends Record<string, unknown>, K extends keyof T>(columns: T, key: K): Omit<T, K> {
+  return Object.fromEntries(Object.entries(columns).filter(([name]) => name !== key)) as Omit<T, K>;
+}
+
 export function clampLimit(limit: number | undefined, fallback = 50, max = 200): number {
   if (!limit || !Number.isFinite(limit) || limit < 1) return fallback;
   return Math.min(Math.floor(limit), max);
+}
+
+export function clampOffset(offset: number | undefined): number {
+  return offset && Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0;
+}
+
+/** True for a valid IANA time zone name ("Europe/London", "UTC"). */
+export function isValidTimeZone(tz: string): boolean {
+  if (!tz) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Trimmed, lower-cased email: the stored and compared form. */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** An http(s) URL, trimmed; null for empty input. Throws on anything else. */
+export function normalizeHttpUrl(value: string | null | undefined, label = "URL"): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(`${label} must be a full http(s) address.`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error(`${label} must start with http or https.`);
+  return url.toString();
+}
+
+/** First instant of the UTC calendar month containing `now`. */
+export function monthStartUtc(now: Date = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+/** First instant of the next UTC calendar month. */
+export function nextMonthStartUtc(now: Date = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 }

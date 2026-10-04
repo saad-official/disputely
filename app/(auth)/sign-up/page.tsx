@@ -17,8 +17,8 @@ export default async function SignUpPage({ searchParams }: PageProps<"/sign-up">
     <Card className="shadow-card">
       <CardHeader>
         <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">Free account</p>
-        <CardTitle className="font-heading text-2xl font-bold tracking-tight">Answer the next questionnaire in hours, not days</CardTitle>
-        <CardDescription>One questionnaire a month with 25 policy pages on Free. No card needed.</CardDescription>
+        <CardTitle className="font-heading text-2xl font-bold tracking-tight">Win the disputes you should be winning</CardTitle>
+        <CardDescription>Three disputes a month on Free, packets as PDF. No card needed.</CardDescription>
       </CardHeader>
       <CardContent>
         <SignUpForm next={next} />

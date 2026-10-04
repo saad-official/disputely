@@ -8,18 +8,19 @@ export type { Actor } from "@/lib/db/types";
 
 export type AgentEntityType =
   | "organization"
-  | "document"
-  | "chunk"
-  | "library_answer"
-  | "questionnaire"
-  | "question"
-  | "share_link";
+  | "dispute"
+  | "packet"
+  | "attachment"
+  | "library_item"
+  | "message_log"
+  | "shipment"
+  | "reminder";
 
 export type AgentEventInput = {
   /** null for system events not tied to an organization (e.g. cron sweeps). */
   orgId: string | null;
   actor: Actor;
-  /** Short dotted name, e.g. "document.indexed", "question.drafted", "question.approved". */
+  /** Short dotted name, e.g. "dispute.synced", "packet.assembled", "packet.narrative_drafted", "packet.submitted". */
   type: string;
   entityType?: AgentEntityType;
   entityId?: string | null;
@@ -31,7 +32,7 @@ export type AgentEventInput = {
 
 /**
  * Append-only audit trail. agent_events rejects UPDATE, DELETE and TRUNCATE
- * at the database level (drizzle/0002_agent_events_append_only.sql), so this
+ * at the database level (drizzle/0001_agent_events_append_only.sql), so this
  * is the only write path. Logging must never break the main flow: errors are
  * reported to the console and swallowed.
  */

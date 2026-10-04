@@ -3,39 +3,39 @@ import { ArrowLeft } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="ledger-lines flex min-h-svh flex-1 flex-col bg-background lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <aside className="relative hidden flex-col justify-between bg-ink p-12 text-parchment lg:flex">
+    <div className="flex min-h-svh flex-1 flex-col bg-background lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <aside className="relative hidden flex-col justify-between bg-slate p-12 text-linen lg:flex">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight text-parchment outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="inline-flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight text-linen outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <span aria-hidden className="inline-flex size-4 items-center justify-center rounded-[3px] bg-evergreen text-[10px] font-bold text-evergreen-foreground">✓</span>
+          <span aria-hidden className="inline-flex size-4 items-center justify-center rounded-[3px] bg-oxide text-[10px] font-bold text-oxide-foreground">✓</span>
           Disputely
         </Link>
         <div className="max-w-md space-y-4">
           <p className="font-heading text-4xl font-semibold leading-tight tracking-tight">
-            Security questionnaires, answered with citations.
+            Win more chargebacks, pay a flat fee.
           </p>
-          <p className="text-sm text-parchment/70">
-            Every answer is drafted from your own policies and points at the exact passage. Questions with no
-            evidence become tasks instead of guesses.
+          <p className="text-sm text-linen/70">
+            Every open dispute, its deadline and the evidence its reason code needs, assembled from Stripe and
+            your own records. The narrative only states facts it can verify.
           </p>
-          <dl className="grid grid-cols-3 gap-3 pt-2 font-mono text-xs text-parchment/70">
+          <dl className="grid grid-cols-3 gap-3 pt-2 font-mono text-xs text-linen/70">
             <div>
-              <dt className="text-parchment/50">Drafts</dt>
-              <dd>the model</dd>
+              <dt className="text-linen/50">Assembles</dt>
+              <dd>the playbook</dd>
             </div>
             <div>
-              <dt className="text-parchment/50">Verifies</dt>
-              <dd>citation rules</dd>
+              <dt className="text-linen/50">Verifies</dt>
+              <dd>every fact</dd>
             </div>
             <div>
-              <dt className="text-parchment/50">Approves</dt>
+              <dt className="text-linen/50">Submits</dt>
               <dd>you</dd>
             </div>
           </dl>
         </div>
-        <p className="text-xs text-parchment/50">For small SaaS teams, agencies and MSPs selling to enterprises.</p>
+        <p className="text-xs text-linen/50">For online merchants on Stripe, from $5k to $500k a month.</p>
       </aside>
 
       <div className="flex flex-1 flex-col px-4 py-8 sm:px-8">

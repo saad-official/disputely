@@ -2,7 +2,14 @@ import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Paths that require a signed-in user. */
-const PROTECTED_PREFIXES = ["/dashboard", "/questionnaires", "/knowledge", "/library", "/settings", "/billing"];
+const PROTECTED_PREFIXES = ["/dashboard", "/disputes", "/library", "/analytics", "/settings", "/billing"];
+
+/**
+ * Machine endpoints, passed straight through whatever cookies the caller has:
+ * Stripe webhooks, cron (Bearer CRON_SECRET) and the health probe. Every
+ * other path is marketing, auth or a protected app page.
+ */
+const PUBLIC_PREFIXES = ["/api/webhooks", "/api/cron", "/api/health"];
 
 /** Paths a signed-in user is bounced away from. */
 const AUTH_PATHS = ["/sign-in", "/sign-up"];
@@ -10,8 +17,16 @@ const AUTH_PATHS = ["/sign-in", "/sign-up"];
 /** Must match `advanced.cookiePrefix` in lib/auth/server.ts. */
 const COOKIE_PREFIX = "disputely";
 
-function isProtectedPath(pathname: string) {
-  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function matchesPrefix(pathname: string, prefixes: readonly string[]) {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+export function isProtectedPath(pathname: string) {
+  return matchesPrefix(pathname, PROTECTED_PREFIXES);
+}
+
+export function isPublicPath(pathname: string) {
+  return matchesPrefix(pathname, PUBLIC_PREFIXES);
 }
 
 /**
@@ -21,6 +36,8 @@ function isProtectedPath(pathname: string) {
  */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  if (isPublicPath(pathname)) return NextResponse.next();
+
   const hasSession = Boolean(getSessionCookie(request, { cookiePrefix: COOKIE_PREFIX }));
 
   if (!hasSession && isProtectedPath(pathname)) {

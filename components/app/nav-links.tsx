@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpenCheck,
-  ClipboardList,
+  BarChart3,
   CreditCard,
-  FileText,
   LayoutDashboard,
+  Library,
   Settings,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,29 +17,29 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/questionnaires", label: "Questionnaires", icon: ClipboardList },
-  { href: "/knowledge", label: "Knowledge base", icon: FileText },
-  { href: "/library", label: "Library", icon: BookOpenCheck },
+  { href: "/disputes", label: "Disputes", icon: ShieldAlert },
+  { href: "/library", label: "Library", icon: Library },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
 ];
 
-/** The item that carries the needs-evidence counter. */
-const COUNTER_HREF = "/questionnaires";
+/** The item that carries the needs-response counter. */
+const COUNTER_HREF = "/disputes";
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** `openEvidenceCount`: questions needing evidence across in-review questionnaires; 0 hides the badge. */
-export function NavLinks({ openEvidenceCount }: { openEvidenceCount: number }) {
+/** `openDisputeCount`: disputes that still need a response; 0 hides the badge. */
+export function NavLinks({ openDisputeCount }: { openDisputeCount: number }) {
   const pathname = usePathname();
 
   return (
     <nav aria-label="Main" className="grid gap-0.5">
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = isActive(pathname, href);
-        const showCount = href === COUNTER_HREF && openEvidenceCount > 0;
+        const showCount = href === COUNTER_HREF && openDisputeCount > 0;
         return (
           <Link
             key={href}
@@ -61,10 +61,10 @@ export function NavLinks({ openEvidenceCount }: { openEvidenceCount: number }) {
             <span className="truncate">{label}</span>
             {showCount ? (
               <span
-                className="tabular ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 font-mono text-xs font-semibold text-amber-foreground"
-                aria-label={`${openEvidenceCount} ${openEvidenceCount === 1 ? "question needs" : "questions need"} evidence`}
+                className="tabular ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-oxide px-1.5 font-mono text-xs font-semibold text-oxide-foreground"
+                aria-label={`${openDisputeCount} ${openDisputeCount === 1 ? "dispute needs" : "disputes need"} a response`}
               >
-                {openEvidenceCount > 99 ? "99+" : openEvidenceCount}
+                {openDisputeCount > 99 ? "99+" : openDisputeCount}
               </span>
             ) : null}
           </Link>

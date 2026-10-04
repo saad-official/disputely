@@ -36,10 +36,9 @@ async function main(): Promise<void> {
   }
   const dataDir = path.join(process.cwd(), ".pglite");
   const { PGlite } = await import("@electric-sql/pglite");
-  const { vector } = await import("@electric-sql/pglite-pgvector");
   const { drizzle } = await import("drizzle-orm/pglite");
   const { migrate } = await import("drizzle-orm/pglite/migrator");
-  const client = new PGlite({ dataDir, extensions: { vector } });
+  const client = new PGlite({ dataDir });
   try {
     await migrate(drizzle({ client }), migrationsConfig);
   } finally {
