@@ -82,7 +82,10 @@ export const LEGAL_THREAT_PATTERNS: RegExp[] = [
   /\b(?:sue|sues|sued|suing)\b/i,
   /\bprosecut\w*/i,
   /\blawsuits?\b/i,
-  /\bcourt\b/i,
+  // "court" only as a venue or action, never as part of a street address ("7 Harbor View Court").
+  /\b(?:to|in|before|at) court\b/i,
+  /\bcourt (?:action|order|orders|proceedings?|case|filing|summons)\b/i,
+  /\bsmall claims\b/i,
   /\bpolice\b/i,
   /\blaw enforcement\b/i,
   /\bcollections? agenc(?:y|ies)\b/i,

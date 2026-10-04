@@ -36,7 +36,7 @@ https://getdisputely.vercel.app · Stripe runs in test mode (card `4242 4242 424
 4. Download the PDF packet, upload supporting files (sent to Stripe as `dispute_evidence`), and **Submit** through the Disputes API; demo disputes can simulate a win or a loss with Stripe's `winning_evidence` / `losing_evidence` triggers.
 5. Analytics: win rate by reason code, median completeness of submitted packets, recovered amounts by currency. Reminders at 7, 3 and 1 day go to the Outbox.
 
-Verified on 4 Oct 2026: sign-up, key validation (secret keys refused), production cron, webhook and health routes. The Stripe-connected flow (demo disputes, submission) is covered by service tests with a stubbed Stripe client and still needs one live run with a restricted test key.
+Verified end to end on 4 Oct 2026 against the production Neon database and a real Stripe test account: restricted key connected (secret keys refused), three test disputes created and synced, packets assembled at 93% completeness, statements written and fact-checked (one fabricated-looking sentence removed and shown), PDF rendered, two packets submitted through the Disputes API with Stripe's winning and losing triggers, outcomes (won $129.00, lost) arrived through the production webhook and the dashboard showed a 50% win rate and $129.00 recovered.
 
 ## Known gaps
 

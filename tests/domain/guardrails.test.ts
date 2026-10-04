@@ -145,6 +145,8 @@ describe("verifyNarrative: tone", () => {
     ["Our lawyer has been informed.", "legal_threat"],
     ["We may sue to recover the funds.", "legal_threat"],
     ["The customer could be prosecuted.", "legal_threat"],
+    ["We will take this to court if needed.", "legal_threat"],
+    ["A court order will follow.", "legal_threat"],
   ])("removes %j as %s", (sentence, kind) => {
     const r = verifyNarrative(`The order shipped with UPS. ${sentence}`, FACTS);
     expect(r.narrative).toBe("The order shipped with UPS.");
@@ -154,6 +156,8 @@ describe("verifyNarrative: tone", () => {
   it("does not flag words that merely contain the patterns", () => {
     expect(kept("We pursued the issue with the carrier.")).toBe(true);
     expect(kept("The underlying order was courteous and complete.")).toBe(true);
+    // "Court" is a common street suffix; an address must never read as a legal threat.
+    expect(kept("The parcel was delivered to the court address listed at checkout.")).toBe(true);
   });
 });
 
